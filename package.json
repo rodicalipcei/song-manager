@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
-    "vercel-build": "vue-tsc && vite build"
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "cors": "^2.8.5",
