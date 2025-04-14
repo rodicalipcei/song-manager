@@ -19,10 +19,16 @@
     
     <main class="app-content">
       <div v-if="isLoading" class="loading-indicator">
+        <div class="loading-animation">
+          <div class="loading-circle"></div>
+          <div class="loading-circle"></div>
+          <div class="loading-circle"></div>
+        </div>
         <p>Loading songs...</p>
       </div>
       
       <div v-if="error" class="error-message">
+        <div class="error-icon">⚠️</div>
         <p>{{ error }}</p>
         <button @click="loadSongs" class="button primary">Try Again</button>
       </div>
@@ -38,7 +44,7 @@
       
       <div v-if="!isLoading" class="songs-section">
         <div class="section-header">
-          <h2>Your Songs ({{ songs.length }})</h2>
+          <h2>Your Songs <span class="songs-count">{{ songs.length }}</span></h2>
           <div class="view-toggles">
             <button 
               @click="viewMode = 'table'" 
@@ -67,10 +73,13 @@
         ></song-table>
         
         <div v-else class="song-cards">
-          <p v-if="songs.length === 0" class="no-songs">
-            <span v-if="searchQuery">No songs match your search.</span>
-            <span v-else>No songs added yet. Add your first song above!</span>
-          </p>
+          <div v-if="songs.length === 0" class="no-songs">
+            <div class="empty-state">
+              <div class="empty-state-icon">🎵</div>
+              <p v-if="searchQuery">No songs match your search.</p>
+              <p v-else>No songs added yet. Add your first song above!</p>
+            </div>
+          </div>
           <song-card
             v-for="song in songs"
             :key="song.id"
@@ -246,3 +255,122 @@ onMounted(() => {
   loadSongs();
 });
 </script>
+
+<style scoped>
+.songs-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  padding: 0 var(--spacing-2);
+  font-size: var(--font-size-sm);
+  height: 1.5rem;
+  min-width: 1.5rem;
+  margin-left: var(--spacing-2);
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-12);
+  color: var(--color-text-light);
+}
+
+.loading-animation {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
+.loading-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-circle:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-circle:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { 
+    transform: scale(0);
+  } 40% { 
+    transform: scale(1.0);
+  }
+}
+
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-4);
+  color: var(--color-error);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8);
+  color: var(--color-text-light);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-4);
+  color: var(--color-text-lighter);
+}
+
+.song-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+}
+
+/* Smooth transitions between views */
+.song-cards, 
+.song-table-container {
+  transition: opacity var(--transition-normal);
+}
+
+@media (max-width: 768px) {
+  .app-header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--spacing-4);
+  }
+  
+  .search-container {
+    width: 100%;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: var(--spacing-4);
+    align-items: center;
+  }
+  
+  .songs-count {
+    margin-left: var(--spacing-2);
+  }
+}
+</style>

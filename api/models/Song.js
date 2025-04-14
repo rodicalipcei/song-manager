@@ -1,5 +1,5 @@
 // api/models/Song.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const SongSchema = new mongoose.Schema({
   title: {
@@ -27,4 +27,4 @@ const SongSchema = new mongoose.Schema({
 });
 
 // Check if the model is already defined to prevent overwriting
-module.exports = mongoose.models.Song || mongoose.model('Song', SongSchema);
+export default mongoose.models.Song || mongoose.model('Song', SongSchema);

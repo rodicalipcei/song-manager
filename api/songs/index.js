@@ -1,11 +1,17 @@
 // api/songs/index.js
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const dbConnect = require('../utils/dbConnect');
-const Song = require('../models/Song');
-const { v4: uuidv4 } = require('uuid');
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import dbConnect from '../utils/dbConnect.js';
+import Song from '../models/Song.js';
+import { v4 as uuidv4 } from 'uuid';
+
+// Get current directory (ES modules don't have __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -94,5 +100,5 @@ app.post('/api/songs', upload.single('audioFile'), async (req, res) => {
   }
 });
 
-// Export handler for Vercel serverless deployment
-module.exports = app;
+// Export as default for ES modules
+export default app;

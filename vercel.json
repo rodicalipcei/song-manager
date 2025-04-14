@@ -13,16 +13,28 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "src": "/api/songs/search",
+      "dest": "/api/songs/search.js"
+    },
+    {
+      "src": "/api/songs/([^/]+)/mark-sung",
+      "dest": "/api/songs/[id]/mark-sung.js?id=$1"
+    },
+    {
+      "src": "/api/songs/([^/]+)",
+      "dest": "/api/songs/[id].js?id=$1"
+    },
+    {
+      "src": "/api/songs",
+      "dest": "/api/songs/index.js"
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "/uploads/$1"
+      "dest": "/public/uploads/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/$1"
+      "dest": "/api/$1.js"
     }
   ]
 }

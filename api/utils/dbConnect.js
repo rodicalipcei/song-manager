@@ -1,5 +1,5 @@
 // api/utils/dbConnect.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 let cached = global.mongoose;
 
@@ -33,4 +33,4 @@ async function dbConnect() {
   return cached.conn;
 }
 
-module.exports = dbConnect;
+export default dbConnect;

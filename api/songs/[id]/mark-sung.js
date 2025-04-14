@@ -1,7 +1,7 @@
 // api/songs/[id]/mark-sung.js
-const express = require('express');
-const dbConnect = require('../../utils/dbConnect');
-const Song = require('../../models/Song');
+import express from 'express';
+import dbConnect from '../../utils/dbConnect.js';
+import Song from '../../models/Song.js';
 
 const app = express();
 app.use(express.json());
@@ -37,4 +37,4 @@ app.patch('/api/songs/:id/mark-sung', async (req, res) => {
   }
 });
 
-module.exports = app;
+export default app;

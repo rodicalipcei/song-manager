@@ -36,10 +36,10 @@
       </div>
       
       <div class="form-group audio-upload">
-        <label for="audioFile">
-          <span>Audio File (optional)</span>
+        <div class="audio-upload-header">
+          <label for="audioFile">Audio File (optional)</label>
           <span v-if="audioStatus" class="audio-status">{{ audioStatus }}</span>
-        </label>
+        </div>
         
         <div class="file-upload-container">
           <div class="file-upload-button">
@@ -62,18 +62,29 @@
           </div>
           
           <div v-if="formData.audioFile" class="file-info">
-            Selected file: {{ formData.audioFile.name }} ({{ formatFileSize(formData.audioFile.size) }})
+            <div class="file-info-icon">📂</div>
+            <div class="file-info-details">
+              <div class="file-name">{{ formData.audioFile.name }}</div>
+              <div class="file-size">{{ formatFileSize(formData.audioFile.size) }}</div>
+            </div>
           </div>
         </div>
       </div>
       
       <div v-if="formError" class="form-error">
-        {{ formError }}
+        <span class="error-icon">⚠️</span>
+        <span>{{ formError }}</span>
       </div>
       
       <div class="form-actions">
         <button type="submit" class="button primary" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Song') }}
+          <span v-if="isSubmitting">
+            <span class="loading-spinner"></span>
+            {{ isEditing ? 'Saving...' : 'Adding...' }}
+          </span>
+          <span v-else>
+            {{ isEditing ? 'Save Changes' : 'Add Song' }}
+          </span>
         </button>
         <button 
           v-if="isEditing" 
@@ -263,18 +274,78 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.form-error {
-  color: #ef4444;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  padding: 0.5rem;
-  background-color: #fee2e2;
-  border-radius: 0.375rem;
+.audio-upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
 }
 
 .file-info {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background-color: rgba(243, 244, 246, 0.5);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-3);
+}
+
+.file-info-icon {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.file-info-details {
+  flex: 1;
+}
+
+.file-name {
+  font-weight: 500;
+  color: var(--color-text-dark);
+  margin-bottom: var(--spacing-1);
+  word-break: break-all;
+}
+
+.file-size {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-error);
+  background-color: rgba(239, 68, 68, 0.1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-4);
+}
+
+.error-icon {
+  font-size: 1.25rem;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: var(--spacing-2);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-color-scheme: dark) {
+  .file-info,
+  .file-upload-button {
+    background-color: rgba(31, 41, 55, 0.5);
+  }
 }
 </style>
