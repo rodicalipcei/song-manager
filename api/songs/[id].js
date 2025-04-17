@@ -1,4 +1,4 @@
-// api/songs/[id].js
+// api/songs/[id].js - Fixed to handle delete and update properly
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Configure multer just like in index.js
+// Configure multer
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     const uploadDir = path.join(process.cwd(), 'public/uploads');
@@ -48,16 +48,19 @@ app.use(express.json());
 app.get('/api/songs/:id', async (req, res) => {
   try {
     await dbConnect();
+    console.log("GET song with ID:", req.params.id);
     
     const song = await Song.findById(req.params.id);
     
     if (!song) {
+      console.log("Song not found with ID:", req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Song not found'
       });
     }
     
+    console.log("Found song:", song);
     return res.status(200).json({
       success: true,
       data: song
@@ -66,7 +69,7 @@ app.get('/api/songs/:id', async (req, res) => {
     console.error(`Error fetching song ${req.params.id}:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error while fetching song'
+      message: 'Server error while fetching song: ' + error.message
     });
   }
 });
@@ -75,6 +78,8 @@ app.get('/api/songs/:id', async (req, res) => {
 app.put('/api/songs/:id', upload.single('audioFile'), async (req, res) => {
   try {
     await dbConnect();
+    console.log("PUT update song with ID:", req.params.id);
+    console.log("Body:", req.body);
     
     const { title, musicalRange, lastSung } = req.body;
     
@@ -82,6 +87,7 @@ app.put('/api/songs/:id', upload.single('audioFile'), async (req, res) => {
     const existingSong = await Song.findById(req.params.id);
     
     if (!existingSong) {
+      console.log("Song not found with ID:", req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Song not found'
@@ -97,11 +103,14 @@ app.put('/api/songs/:id', upload.single('audioFile'), async (req, res) => {
     
     // If there's a new file, update the path and delete old file if exists
     if (req.file) {
+      console.log("New file uploaded:", req.file.filename);
+      
       // Delete old file if it exists
       if (existingSong.audio_path) {
         const oldFilePath = path.join(process.cwd(), 'public', existingSong.audio_path);
         if (fs.existsSync(oldFilePath)) {
           fs.unlinkSync(oldFilePath);
+          console.log("Deleted old file:", existingSong.audio_path);
         }
       }
       
@@ -116,6 +125,7 @@ app.put('/api/songs/:id', upload.single('audioFile'), async (req, res) => {
       { new: true, runValidators: true }
     );
     
+    console.log("Updated song:", song);
     return res.status(200).json({
       success: true,
       data: song
@@ -133,11 +143,13 @@ app.put('/api/songs/:id', upload.single('audioFile'), async (req, res) => {
 app.delete('/api/songs/:id', async (req, res) => {
   try {
     await dbConnect();
+    console.log("DELETE song with ID:", req.params.id);
     
     // Find the song first to get the file path
     const song = await Song.findById(req.params.id);
     
     if (!song) {
+      console.log("Song not found with ID:", req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Song not found'
@@ -149,12 +161,14 @@ app.delete('/api/songs/:id', async (req, res) => {
       const filePath = path.join(process.cwd(), 'public', song.audio_path);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
+        console.log("Deleted audio file:", song.audio_path);
       }
     }
     
     // Delete the song from database
     await Song.findByIdAndDelete(req.params.id);
     
+    console.log("Successfully deleted song with ID:", req.params.id);
     return res.status(200).json({
       success: true,
       data: { id: req.params.id }
@@ -163,7 +177,7 @@ app.delete('/api/songs/:id', async (req, res) => {
     console.error(`Error deleting song ${req.params.id}:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error while deleting song'
+      message: 'Server error while deleting song: ' + error.message
     });
   }
 });

@@ -18,11 +18,13 @@
     },
     {
       "src": "/api/songs/([^/]+)/mark-sung",
-      "dest": "/api/songs/[id]/mark-sung.js?id=$1"
+      "dest": "/api/songs/[id]/mark-sung.js?id=$1",
+      "methods": ["PATCH"]
     },
     {
       "src": "/api/songs/([^/]+)",
-      "dest": "/api/songs/[id].js?id=$1"
+      "dest": "/api/songs/[id].js?id=$1",
+      "methods": ["GET", "PUT", "DELETE"]
     },
     {
       "src": "/api/songs",
@@ -34,7 +36,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/api/$1.js"
+      "dest": "/dist/$1.js"
     }
   ]
 }

@@ -8,12 +8,15 @@ export class SongService {
   
   async getSongs(): Promise<Song[]> {
     if (this.useLocalStorage) {
+      console.log("Using localStorage to get songs");
       return this.getSongsFromLocalStorage();
     }
     
     try {
+      console.log("Fetching songs from API");
       // Get songs from API
       const songDataArray = await ApiService.getSongs();
+      console.log("API returned songs:", songDataArray);
       
       // Convert API response to Song objects
       return songDataArray.map((songData) => {
@@ -22,7 +25,7 @@ export class SongService {
           songData.musical_range,
           songData.audio_path, // This is the server path, not a blob URL
           songData.last_sung ? new Date(songData.last_sung) : null,
-          songData.id,
+          songData.id || songData._id, // Handle both id formats
           songData.created_at ? new Date(songData.created_at) : new Date()
         );
       });
@@ -35,6 +38,7 @@ export class SongService {
   }
   
   private getSongsFromLocalStorage(): Song[] {
+    console.log("Getting songs from localStorage");
     const storedSongs = localStorage.getItem(this.STORAGE_KEY);
     if (!storedSongs) return [];
     
@@ -58,6 +62,7 @@ export class SongService {
 
   saveSongs(songs: Song[]): void {
     if (this.useLocalStorage) {
+      console.log("Saving songs to localStorage");
       // Store only the serializable data (not Files)
       const serializableSongs = songs.map(song => ({
         id: song.id,
@@ -75,7 +80,10 @@ export class SongService {
   }
 
   async addSong(song: Song, songs: Song[]): Promise<Song[]> {
+    console.log("Adding new song:", song);
+    
     if (this.useLocalStorage) {
+      console.log("Using localStorage to add song");
       // Handle localStorage mode
       const newSongs = [...songs, song];
       this.saveSongs(newSongs);
@@ -83,6 +91,7 @@ export class SongService {
     }
     
     try {
+      console.log("Creating song via API with FormData");
       // Create the song via API with FormData for file upload
       const songData = {
         title: song.title,
@@ -92,6 +101,7 @@ export class SongService {
       };
       
       const createdSong = await ApiService.createSong(songData);
+      console.log("API created song:", createdSong);
       
       // Create a new Song instance with the server data
       const newSong = new Song(
@@ -99,7 +109,7 @@ export class SongService {
         createdSong.musical_range,
         createdSong.audio_path, // Use the server path
         createdSong.last_sung ? new Date(createdSong.last_sung) : null,
-        createdSong.id,
+        createdSong.id || createdSong._id, // Handle both id formats
         createdSong.created_at ? new Date(createdSong.created_at) : new Date()
       );
       
@@ -113,18 +123,58 @@ export class SongService {
   }
 
   async removeSong(id: string, songs: Song[]): Promise<Song[]> {
+    console.log("Attempting to remove song with ID:", id);
+    
     if (this.useLocalStorage) {
+      console.log("Using localStorage for song removal");
       const newSongs = songs.filter(song => song.id !== id);
       this.saveSongs(newSongs);
       return newSongs;
     }
     
     try {
-      // Delete the song via API
-      await ApiService.deleteSong(id);
+      console.log("Sending DELETE request to API for song ID:", id);
+      // Add a timeout to ensure the request completes
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Return the updated list without the deleted song
-      return songs.filter(song => song.id !== id);
+      const response = await fetch(`/api/songs/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error ${response.status}: ${response.statusText}`);
+        console.error('Error response body:', errorText);
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get the response as text first
+      const textResponse = await response.text();
+      console.log("Response from delete:", textResponse);
+      
+      try {
+        // Try to parse as JSON
+        const data = JSON.parse(textResponse);
+        
+        // Check if the API indicates an error
+        if (!data.success) {
+          throw new Error(data.message || 'API operation failed');
+        }
+        
+        console.log("Successfully removed song, returning updated list");
+        // Return the updated list without the deleted song
+        return songs.filter(song => song.id !== id);
+      } catch (jsonError) {
+        console.error('Failed to parse response as JSON:', jsonError);
+        throw new Error(`Server returned invalid JSON`);
+      }
     } catch (error) {
       console.error('Error removing song via API:', error);
       // Fall back to localStorage
@@ -134,7 +184,10 @@ export class SongService {
   }
 
   async updateSong(updatedSong: Song, songs: Song[]): Promise<Song[]> {
+    console.log("Attempting to update song:", updatedSong);
+    
     if (this.useLocalStorage) {
+      console.log("Using localStorage for song update");
       const newSongs = songs.map(song => 
         song.id === updatedSong.id ? updatedSong : song
       );
@@ -143,30 +196,69 @@ export class SongService {
     }
     
     try {
-      // Update the song via API
-      const songData = {
-        title: updatedSong.title,
-        musicalRange: updatedSong.musicalRange,
-        audioFile: updatedSong.audioFile, // This is the File object
-        lastSung: updatedSong.lastSung
-      };
+      console.log("Sending PUT request to API for song update");
+      // Create FormData to handle file upload
+      const formData = new FormData();
+      formData.append('title', updatedSong.title);
+      formData.append('musicalRange', updatedSong.musicalRange);
       
-      const updatedSongData = await ApiService.updateSong(updatedSong.id, songData);
+      if (updatedSong.lastSung) {
+        formData.append('lastSung', updatedSong.lastSung.toISOString());
+      }
       
-      // Create a new Song with the server data
-      const serverUpdatedSong = new Song(
-        updatedSongData.title,
-        updatedSongData.musical_range,
-        updatedSongData.audio_path, // Use the server path
-        updatedSongData.last_sung ? new Date(updatedSongData.last_sung) : null,
-        updatedSongData.id,
-        updatedSongData.created_at ? new Date(updatedSongData.created_at) : new Date()
-      );
+      if (updatedSong.audioFile instanceof File) {
+        formData.append('audioFile', updatedSong.audioFile);
+      }
       
-      // Update the song in the local array
-      return songs.map(song => 
-        song.id === updatedSong.id ? serverUpdatedSong : song
-      );
+      // Add a timeout to ensure the request completes
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // longer timeout for file uploads
+      
+      const response = await fetch(`/api/songs/${updatedSong.id}`, {
+        method: 'PUT',
+        body: formData,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error ${response.status}: ${response.statusText}`);
+        console.error('Error response body:', errorText);
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Parse the response
+      const textResponse = await response.text();
+      console.log("Response from update:", textResponse);
+      
+      try {
+        const data = JSON.parse(textResponse);
+        
+        if (!data.success) {
+          throw new Error(data.message || 'API operation failed');
+        }
+        
+        // Create a new Song with the server data
+        const serverUpdatedSong = new Song(
+          data.data.title,
+          data.data.musical_range,
+          data.data.audio_path,
+          data.data.last_sung ? new Date(data.data.last_sung) : null,
+          data.data.id || data.data._id, // Handle both id formats
+          data.data.created_at ? new Date(data.data.created_at) : new Date()
+        );
+        
+        console.log("Successfully updated song, returning updated list");
+        // Update the song in the local array
+        return songs.map(song => 
+          song.id === updatedSong.id ? serverUpdatedSong : song
+        );
+      } catch (jsonError) {
+        console.error('Failed to parse response as JSON:', jsonError);
+        throw new Error(`Server returned invalid JSON`);
+      }
     } catch (error) {
       console.error('Error updating song via API:', error);
       // Fall back to localStorage
@@ -176,7 +268,10 @@ export class SongService {
   }
   
   async markSongAsSung(id: string, songs: Song[]): Promise<Song[]> {
+    console.log("Attempting to mark song as sung with ID:", id);
+    
     if (this.useLocalStorage) {
+      console.log("Using localStorage to mark song as sung");
       const song = songs.find(s => s.id === id);
       if (song) {
         song.updateLastSung();
@@ -188,22 +283,54 @@ export class SongService {
     }
     
     try {
-      // Mark the song as sung via API
-      const updatedSongData = await ApiService.markSongAsSung(id);
+      console.log("Sending PATCH request to API to mark song as sung");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Update the song in our local array with server data
-      return songs.map(song => 
-        song.id === id 
-          ? new Song(
-              updatedSongData.title,
-              updatedSongData.musical_range,
-              updatedSongData.audio_path,
-              updatedSongData.last_sung ? new Date(updatedSongData.last_sung) : null,
-              updatedSongData.id,
-              updatedSongData.created_at ? new Date(updatedSongData.created_at) : new Date()
-            ) 
-          : song
-      );
+      const response = await fetch(`/api/songs/${id}/mark-sung`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error ${response.status}: ${response.statusText}`);
+        console.error('Error response body:', errorText);
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const textResponse = await response.text();
+      console.log("Response from mark-sung:", textResponse);
+      
+      try {
+        const data = JSON.parse(textResponse);
+        
+        if (!data.success) {
+          throw new Error(data.message || 'API operation failed');
+        }
+        
+        // Update the song in our local array with server data
+        return songs.map(song => 
+          song.id === id 
+            ? new Song(
+                data.data.title,
+                data.data.musical_range,
+                data.data.audio_path,
+                data.data.last_sung ? new Date(data.data.last_sung) : null,
+                data.data.id || data.data._id, // Handle both id formats
+                data.data.created_at ? new Date(data.data.created_at) : new Date()
+              ) 
+            : song
+        );
+      } catch (jsonError) {
+        console.error('Failed to parse response as JSON:', jsonError);
+        throw new Error(`Server returned invalid JSON`);
+      }
     } catch (error) {
       console.error('Error marking song as sung via API:', error);
       // Fall back to localStorage
@@ -213,9 +340,11 @@ export class SongService {
   }
 
   async searchSongs(query: string, songs: Song[]): Promise<Song[]> {
+    console.log("Searching for songs with query:", query);
     if (!query.trim()) return this.getSongs(); // Return all songs if query is empty
     
     if (this.useLocalStorage) {
+      console.log("Using localStorage for song search");
       const lowerQuery = query.toLowerCase().trim();
       return songs.filter(song => 
         song.title.toLowerCase().includes(lowerQuery) ||
@@ -224,8 +353,10 @@ export class SongService {
     }
     
     try {
+      console.log("Searching songs via API");
       // Search songs via API
       const songDataArray = await ApiService.searchSongs(query);
+      console.log("API search returned:", songDataArray);
       
       // Convert API response to Song objects
       return songDataArray.map((songData) => {
@@ -234,7 +365,7 @@ export class SongService {
           songData.musical_range,
           songData.audio_path,
           songData.last_sung ? new Date(songData.last_sung) : null,
-          songData.id,
+          songData.id || songData._id, // Handle both id formats
           songData.created_at ? new Date(songData.created_at) : new Date()
         );
       });

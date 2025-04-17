@@ -14,6 +14,7 @@ interface ApiResponse<T> {
 // Define interface for song data from API
 interface SongData {
   id: string;
+  _id: string,
   title: string;
   musical_range: string;
   audio_path: string | null;
