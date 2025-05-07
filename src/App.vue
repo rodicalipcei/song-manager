@@ -33,15 +33,7 @@
         <button @click="loadSongs" class="button primary">Try Again</button>
       </div>
       
-      <song-form 
-        v-if="!isLoading"
-        :is-editing="isEditing"
-        :song-to-edit="songToEdit"
-        @add-song="handleAddSong" 
-        @update-song="handleUpdateSong"
-        @cancel-edit="cancelEdit"
-      ></song-form>
-      
+      <!-- Songs section first -->
       <div v-if="!isLoading" class="songs-section">
         <div class="section-header">
           <h2>Your Songs <span class="songs-count">{{ songs.length }}</span></h2>
@@ -81,14 +73,28 @@
             </div>
           </div>
           <song-card
-            v-for="song in songs"
+            v-for="(song, index) in songs"
             :key="song.id"
             :song="song"
+            :number="index + 1"
             @mark-sung="handleMarkSung"
             @edit-song="startEdit"
             @remove-song="handleRemoveSong"
           ></song-card>
         </div>
+      </div>
+      
+      <!-- Add song form below the songs list -->
+      <div class="add-song-section">
+        <h2 class="add-song-title">Add New Song</h2>
+        <song-form 
+          v-if="!isLoading"
+          :is-editing="isEditing"
+          :song-to-edit="songToEdit"
+          @add-song="handleAddSong" 
+          @update-song="handleUpdateSong"
+          @cancel-edit="cancelEdit"
+        ></song-form>
       </div>
     </main>
     
@@ -216,7 +222,7 @@ const startEdit = (id: string) => {
     isEditing.value = true;
     
     // Scroll to form
-    document.querySelector('.song-form-container')?.scrollIntoView({ 
+    document.querySelector('.add-song-section')?.scrollIntoView({ 
       behavior: 'smooth',
       block: 'start'
     });
@@ -257,20 +263,114 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.songs-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-full);
-  padding: 0 var(--spacing-2);
-  font-size: var(--font-size-sm);
-  height: 1.5rem;
-  min-width: 1.5rem;
-  margin-left: var(--spacing-2);
+/* Root variables are defined in index.css or App.vue */
+
+/* Layout styles */
+.app-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-6);
 }
 
+.songs-section {
+  flex: 1;
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-md);
+}
+
+.add-song-section {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-md);
+  margin-top: var(--spacing-6);
+}
+
+.add-song-title {
+  margin-top: 0;
+  margin-bottom: var(--spacing-4);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-dark);
+}
+
+/* Header styles */
+.app-header {
+  background-color: var(--color-bg-dark);
+  padding: var(--spacing-4) var(--spacing-6);
+  box-shadow: var(--shadow-md);
+}
+
+.app-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.search-container {
+  position: relative;
+  width: 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-4) var(--spacing-2) var(--spacing-8);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--spacing-2);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-light);
+}
+
+/* Section header with toggles */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.view-toggles {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.view-toggle {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-toggle.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* Song cards grid */
+.song-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+}
+
+/* Loading and empty states */
 .loading-indicator {
   display: flex;
   flex-direction: column;
@@ -310,19 +410,6 @@ onMounted(() => {
   }
 }
 
-.error-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.error-icon {
-  font-size: 2.5rem;
-  margin-bottom: var(--spacing-4);
-  color: var(--color-error);
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -338,19 +425,44 @@ onMounted(() => {
   color: var(--color-text-lighter);
 }
 
-.song-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--spacing-6);
-  margin-bottom: var(--spacing-8);
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-/* Smooth transitions between views */
-.song-cards, 
-.song-table-container {
-  transition: opacity var(--transition-normal);
+.error-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-4);
+  color: var(--color-error);
 }
 
+/* Footer */
+.app-footer {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-light);
+  text-align: center;
+  padding: var(--spacing-4);
+  margin-top: auto;
+}
+
+/* Song count badge */
+.songs-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  padding: 0 var(--spacing-2);
+  font-size: var(--font-size-sm);
+  height: 1.5rem;
+  min-width: 1.5rem;
+  margin-left: var(--spacing-2);
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .app-header-content {
     flex-direction: column;
@@ -363,14 +475,19 @@ onMounted(() => {
     width: 100%;
   }
   
+  .app-content {
+    padding: var(--spacing-4);
+  }
+  
+  .songs-section,
+  .add-song-section {
+    padding: var(--spacing-4);
+  }
+  
   .section-header {
     flex-direction: column;
     gap: var(--spacing-4);
     align-items: center;
-  }
-  
-  .songs-count {
-    margin-left: var(--spacing-2);
   }
 }
 </style>

@@ -91,12 +91,20 @@ export class SongService {
     }
     
     try {
+      // Check if we have an audio file to upload
+      if (song.audioFile instanceof File) {
+        console.log("Song has audio file, using local storage for this song");
+        // Fall back to localStorage just for this song with audio
+        const newSongs = [...songs, song];
+        this.saveSongs(newSongs);
+        return newSongs;
+      }
+      
+      // If no audio file, proceed with API
       console.log("Creating song via API with FormData");
-      // Create the song via API with FormData for file upload
       const songData = {
         title: song.title,
         musicalRange: song.musicalRange,
-        audioFile: song.audioFile,
         lastSung: song.lastSung
       };
       
@@ -107,9 +115,9 @@ export class SongService {
       const newSong = new Song(
         createdSong.title,
         createdSong.musical_range,
-        createdSong.audio_path, // Use the server path
+        createdSong.audio_path,
         createdSong.last_sung ? new Date(createdSong.last_sung) : null,
-        createdSong.id || createdSong._id, // Handle both id formats
+        createdSong.id || createdSong._id,
         createdSong.created_at ? new Date(createdSong.created_at) : new Date()
       );
       
@@ -196,27 +204,34 @@ export class SongService {
     }
     
     try {
-      console.log("Sending PUT request to API for song update");
-      // Create FormData to handle file upload
-      const formData = new FormData();
-      formData.append('title', updatedSong.title);
-      formData.append('musicalRange', updatedSong.musicalRange);
-      
-      if (updatedSong.lastSung) {
-        formData.append('lastSung', updatedSong.lastSung.toISOString());
-      }
-      
+      // If there's an audio file, use localStorage
       if (updatedSong.audioFile instanceof File) {
-        formData.append('audioFile', updatedSong.audioFile);
+        console.log("Song has audio file, using local storage for this update");
+        const newSongs = songs.map(song => 
+          song.id === updatedSong.id ? updatedSong : song
+        );
+        this.saveSongs(newSongs);
+        return newSongs;
       }
+      
+      console.log("Sending PUT request to API for song update");
+      // If no new audio file, proceed with API
+      const songData = {
+        title: updatedSong.title,
+        musicalRange: updatedSong.musicalRange,
+        lastSung: updatedSong.lastSung ? updatedSong.lastSung.toISOString() : null
+      };
       
       // Add a timeout to ensure the request completes
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // longer timeout for file uploads
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const response = await fetch(`/api/songs/${updatedSong.id}`, {
         method: 'PUT',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(songData),
         signal: controller.signal
       });
       
@@ -345,11 +360,19 @@ export class SongService {
     
     if (this.useLocalStorage) {
       console.log("Using localStorage for song search");
-      const lowerQuery = query.toLowerCase().trim();
-      return songs.filter(song => 
-        song.title.toLowerCase().includes(lowerQuery) ||
-        song.musicalRange.toLowerCase().includes(lowerQuery)
-      );
+      // Split the query into individual words for better matching
+      const searchTerms = query.toLowerCase().trim().split(/\s+/);
+      
+      // Match ANY of the search terms (not requiring all terms to match)
+      return songs.filter(song => {
+        const titleLower = song.title.toLowerCase();
+        const rangeLower = song.musicalRange.toLowerCase();
+        
+        // Check if ANY search term matches either the title or musical range
+        return searchTerms.some(term => 
+          titleLower.includes(term) || rangeLower.includes(term)
+        );
+      });
     }
     
     try {

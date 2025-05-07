@@ -2,6 +2,7 @@
 <template>
   <div class="song-card">
     <div class="song-card-content">
+      <div class="song-number">{{ number }}</div>
       <div class="song-header">
         <h3 class="song-title">{{ song.title }}</h3>
         <div class="song-badge" :class="getLastSungClass(song)">
@@ -67,6 +68,7 @@ import { Song } from '../models/Song';
 
 const props = defineProps<{
   song: Song;
+  number: number;  // Added number prop
 }>();
 
 defineEmits<{
@@ -121,7 +123,7 @@ const formatDate = (date: Date): string => {
   box-shadow: var(--shadow-md);
   transition: transform var(--transition-normal), box-shadow var(--transition-normal);
   height: 100%;
-  margin-bottom: var(--spacing-6);
+  position: relative;
 }
 
 .song-card:hover {
@@ -136,11 +138,29 @@ const formatDate = (date: Date): string => {
   padding: var(--spacing-6);
 }
 
+.song-number {
+  position: absolute;
+  top: var(--spacing-3);
+  left: var(--spacing-3);
+  background-color: var(--color-primary);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-sm);
+}
+
 .song-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: var(--spacing-4);
+  margin-left: var(--spacing-6);
 }
 
 .song-title {
@@ -241,6 +261,8 @@ audio {
   justify-content: center;
   gap: var(--spacing-2);
   transition: all var(--transition-fast);
+  border: none;
+  cursor: pointer;
 }
 
 .action-text {
@@ -270,6 +292,22 @@ audio {
   
   .icon-button {
     padding: var(--spacing-2);
+  }
+  
+  .song-card-content {
+    padding: var(--spacing-4);
+  }
+  
+  .song-number {
+    top: var(--spacing-2);
+    left: var(--spacing-2);
+    width: 24px;
+    height: 24px;
+    font-size: calc(var(--font-size-sm) - 1px);
+  }
+  
+  .song-header {
+    margin-left: var(--spacing-4);
   }
 }
 
